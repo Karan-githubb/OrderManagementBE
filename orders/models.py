@@ -20,8 +20,8 @@ class Order(models.Model):
     pharmacy = models.ForeignKey(Pharmacy, on_delete=models.CASCADE, related_name='orders')
     order_number = models.CharField(max_length=30, unique=True, editable=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default='unpaid')
     
     # New fields for professional invoice
@@ -52,7 +52,7 @@ class OrderItem(models.Model):
     quantity = models.PositiveIntegerField()
     free_qty = models.PositiveIntegerField(default=0)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    gst_rate = models.DecimalField(max_digits=5, decimal_places=2, default=12.00)
+    gst_rate = models.DecimalField(max_digits=5, decimal_places=2, default=12)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
 
     def __str__(self):

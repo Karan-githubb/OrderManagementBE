@@ -17,7 +17,7 @@ class Product(models.Model):
     mrp = models.DecimalField(max_digits=10, decimal_places=2)
     selling_price = models.DecimalField(max_digits=10, decimal_places=2)
     stock_quantity = models.PositiveIntegerField(default=0)
-    gst_rate = models.DecimalField(max_digits=5, decimal_places=2, default=12.00) # Default 12%
+    gst_rate = models.DecimalField(max_digits=5, decimal_places=2, default=12) # Default 12%
     image = models.ImageField(upload_to='products/', blank=True, null=True)
     image_url = models.URLField(max_length=500, blank=True, null=True)
     is_active = models.BooleanField(default=True)

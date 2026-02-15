@@ -30,7 +30,10 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = ('order_number', 'total_amount', 'status', 'balance_amount')
 
     def get_balance_amount(self, obj):
-        return obj.total_amount - obj.paid_amount
+        from decimal import Decimal
+        total = Decimal(str(obj.total_amount or 0))
+        paid = Decimal(str(obj.paid_amount or 0))
+        return total - paid
 
     def get_pharmacy_details(self, obj):
         from pharmacies.serializers import PharmacySerializer
@@ -60,7 +63,8 @@ class OrderSerializer(serializers.ModelSerializer):
         return instance
 
     def _process_items(self, order, items_data):
-        total_amount = 0
+        from decimal import Decimal
+        total_amount = Decimal('0')
         for item_data in items_data:
             product = item_data['product']
             quantity = item_data['quantity']
