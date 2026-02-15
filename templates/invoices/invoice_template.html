@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 11px;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .invoice-box {
+            width: 100%;
+            border: 1px solid #000;
+            padding: 10px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .company-name {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .company-details {
+            text-align: center;
+            font-size: 10px;
+            margin-top: 5px;
+        }
+
+        .bill-info {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        .bill-info td {
+            border: 1px solid #000;
+            padding: 5px;
+            vertical-align: top;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            border: 1px solid #000;
+        }
+
+        .items-table th {
+            background: #f2f2f2;
+            border: 1px solid #000;
+            padding: 6px;
+            text-align: left;
+        }
+
+        .items-table td {
+            border-left: 1px solid #000;
+            border-right: 1px solid #000;
+            padding: 5px;
+        }
+
+        .items-table tr.last-row td {
+            border-bottom: 1px solid #000;
+        }
+
+        .footer-box {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border: 1px solid #000;
+        }
+
+        .footer-box td {
+            border: 1px solid #000;
+            padding: 8px;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .yellow-bg {
+            background-color: #fff9c4;
+        }
+
+        /* Subtle yellow to match photo */
+
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="invoice-box">
+        <div class="company-name">JAI RATAN ENTERPRISES</div>
+        <div class="company-details">
+            Thiru Sri Jayam Plaza(TSJ), Shop No 5, 25 Dr. Radhakrishnan Road, 7th Street <br>
+            Extension, Gandhipuram, Coimbatore-641012. <br>
+            <strong>DL: TN/CBS/20B/2119, TN/CBS/21B/2119, MOB: +91 9444381448</strong>
+        </div>
+
+        <table style="width: 100%; margin-top: 10px;">
+            <tr>
+                <td style="width: 70%;"><strong>GST No:</strong> 33AHGPP1008C2Z0</td>
+                <td style="text-align: right;"><strong>Email:</strong> jairatanent@gmail.com</td>
+            </tr>
+        </table>
+
+        <div
+            style="text-align: center; font-size: 14px; font-weight: bold; margin: 10px 0; border: 1px solid #000; padding: 4px;">
+            TAX INVOICE</div>
+
+        <table class="bill-info">
+            <tr>
+                <td style="width: 50%;">
+                    <strong>To:</strong><br>
+                    {{ invoice.order.pharmacy.pharmacy_name }}<br>
+                    {{ invoice.order.pharmacy.address }}<br>
+                    Phone: {{ invoice.order.pharmacy.phone }}<br>
+                    GST: {{ invoice.order.pharmacy.gst_number }}
+                </td>
+                <td style="width: 50%;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td><strong>Bill No:</strong> {{ invoice.invoice_number }}</td>
+                            <td><strong>Bill Date:</strong> {{ invoice.created_at|date:"d/m/Y" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Terms:</strong> {{ invoice.order.terms }}</td>
+                            <td><strong>Order No:</strong> {{ invoice.order.order_number }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Salesman:</strong> {{ invoice.order.salesman_name|default:"DIRECT" }}</td>
+                            <td><strong>Delivery Type:</strong> {{ invoice.order.delivery_type }}</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Description</th>
+                    <th>MRP</th>
+                    <th>Batch</th>
+                    <th>Exp</th>
+                    <th>Qty</th>
+                    <th>Free</th>
+                    <th>Rate</th>
+                    <th>Gst%</th>
+                    <th class="text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.order.items.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.product.name }}</td>
+                    <td>{{ item.product.mrp }}</td>
+                    <td>{{ item.product.batch_number }}</td>
+                    <td>{{ item.product.expiry_date|date:"m/y" }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.free_qty }}</td>
+                    <td>{{ item.unit_price }}</td>
+                    <td>{{ item.gst_rate }}%</td>
+                    <td class="text-right">{{ item.total_price }}</td>
+                </tr>
+                {% endfor %}
+                <!-- Spacer rows to fill space like the original -->
+                {% with ""|center:10 as range %}
+                {% for _ in range %}
+                <tr>
+                    <td>&nbsp;</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                {% endfor %}
+                {% endwith %}
+                <tr class="last-row">
+                    <td>&nbsp;</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table class="footer-box">
+            <tr>
+                <td style="width: 60%; vertical-align: bottom;">
+                    <strong>Acknowledgment:</strong><br><br>
+                    Goods received in Good Condition<br><br>
+                    <div style="border-top: 1px dotted #000; width: 200px; margin-top: 20px;">Signature with seal</div>
+                </td>
+                <td style="width: 40%;">
+                    <table style="width: 100%;">
+                        <tr>
+                            <td>Gross Amount:</td>
+                            <td class="text-right">₹{{ invoice.order.total_amount }}</td>
+                        </tr>
+                        <tr>
+                            <td>GST Total:</td>
+                            <td class="text-right">₹0.00</td>
+                        </tr>
+                        <tr>
+                            <td>Disc %:</td>
+                            <td class="text-right">0.00</td>
+                        </tr>
+                        <tr class="bold" style="font-size: 14px;">
+                            <td>NET AMOUNT:</td>
+                            <td class="text-right">₹{{ invoice.order.total_amount }}</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+
+        <div style="margin-top: 10px; font-size: 9px;">
+            * Subject to local jurisdiction. Goods once sold will not be taken back.
+        </div>
+    </div>
+</body>
+
+</html>
