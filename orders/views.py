@@ -13,6 +13,7 @@ from django.db.models import Sum, Count
 from django.db.models.functions import TruncDate
 from datetime import timedelta
 from django.utils import timezone
+from products.models import Product
 
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
@@ -52,6 +53,43 @@ class OrderViewSet(viewsets.ModelViewSet):
             "trend": list(trend),
             "top_pharmacies": list(top_pharmacies)
         })
+
+    @decorators.action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
+    def stock_requirements(self, request):
+        # Calculate requirements based on pending/approved/processing/shipped orders
+        active_statuses = ['pending', 'approved', 'processing', 'shipped']
+        
+        # Aggregate requirement per product
+        requirements = OrderItem.objects.filter(
+            order__status__in=active_statuses
+        ).values('product').annotate(
+            required_qty=Sum('quantity')
+        )
+        
+        req_dict = {r['product']: r['required_qty'] for r in requirements}
+        
+        products = Product.objects.filter(is_active=True)
+        report = []
+        
+        for p in products:
+            required = req_dict.get(p.id, 0)
+            in_hand = p.stock_quantity
+            # If in_hand is negative (e.g. -5), it means we owe 5 from previous deliveries.
+            # But usually we want to see physical stock.
+            shortfall = max(0, required - in_hand)
+            
+            # Only show items that are required for active orders OR have negative stock (backorders)
+            if required > 0 or in_hand < 0:
+                report.append({
+                    "id": p.id,
+                    "name": p.name,
+                    "in_hand": in_hand,
+                    "required": required,
+                    "shortfall": shortfall,
+                    "to_purchase": shortfall
+                })
+        
+        return Response(report)
 
     def get_queryset(self):
         user = self.request.user
@@ -124,11 +162,6 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({"error": "Only pending orders can be approved"}, status=status.HTTP_400_BAD_REQUEST)
         
         with transaction.atomic():
-            # Reduce stock (Allow negative stock if backordered)
-            for item in order.items.all():
-                item.product.stock_quantity -= item.quantity
-                item.product.save()
-            
             order.status = 'approved'
             order.save()
             
@@ -145,6 +178,19 @@ class OrderViewSet(viewsets.ModelViewSet):
         if new_status not in valid_statuses:
             return Response({"error": "Invalid status"}, status=status.HTTP_400_BAD_REQUEST)
         
+        old_status = order.status
         order.status = new_status
-        order.save()
+        
+        # Only deduct stock when delivered AND stock hasn't been deducted yet
+        if new_status == 'delivered' and not order.stock_deducted:
+            with transaction.atomic():
+                # Reduce stock now that it's physically delivered
+                for item in order.items.all():
+                    item.product.stock_quantity -= item.quantity
+                    item.product.save()
+                order.stock_deducted = True
+                order.save()
+        else:
+            order.save()
+            
         return Response({"status": f"Order status updated to {new_status}"})

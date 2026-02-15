@@ -29,6 +29,9 @@ class Order(models.Model):
     terms = models.CharField(max_length=100, default='D-CREDIT BILL')
     delivery_type = models.CharField(max_length=100, default='DIRECT')
     
+    # Track if stock has been deducted to prevent duplicate deductions
+    stock_deducted = models.BooleanField(default=False)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

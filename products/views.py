@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions as drf_permissions, filters
-from .models import Product, Category
-from .serializers import ProductSerializer, CategorySerializer
+from .models import Product, Category, Purchase
+from .serializers import ProductSerializer, CategorySerializer, PurchaseSerializer
 from accounts.permissions import IsAdminUser
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -31,3 +31,8 @@ class ProductViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = [IsAdminUser]
         return [permission() for permission in permission_classes]
+
+class PurchaseViewSet(viewsets.ModelViewSet):
+    queryset = Purchase.objects.all().order_by('-created_at')
+    serializer_class = PurchaseSerializer
+    permission_classes = [IsAdminUser]

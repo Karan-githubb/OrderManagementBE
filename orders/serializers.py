@@ -13,7 +13,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         read_only_fields = ('unit_price', 'total_price', 'gst_rate')
 
 class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True)
+    items = OrderItemSerializer(many=True, required=False)
     pharmacy = serializers.PrimaryKeyRelatedField(queryset=Pharmacy.objects.all(), required=False)
     pharmacy_name = serializers.ReadOnlyField(source='pharmacy.pharmacy_name')
     pharmacy_details = serializers.SerializerMethodField()
@@ -42,11 +42,11 @@ class OrderSerializer(serializers.ModelSerializer):
         return None
 
     def create(self, validated_data):
-        items_data = validated_data.pop('items')
+        items_data = validated_data.pop('items', [])
         order = Order.objects.create(**validated_data)
-        self._process_items(order, items_data)
+        if items_data:
+            self._process_items(order, items_data)
         return order
-
     def update(self, instance, validated_data):
         items_data = validated_data.pop('items', None)
         
