@@ -2,6 +2,25 @@ from django.db import models
 from orders.models import Order
 import datetime
 
+
+class CompanyProfile(models.Model):
+    """Single-row table storing seller/distributor details for bills and reports."""
+    company_name = models.CharField(max_length=255)
+    address = models.TextField(blank=True)
+    gst_number = models.CharField(max_length=30, blank=True)
+    license_number = models.CharField(max_length=100, blank=True, help_text='Drug license / DL number')
+    phone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = 'Company profile'
+
+    def __str__(self):
+        return self.company_name or 'Company'
+
+
 class Invoice(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='invoice')
     invoice_number = models.CharField(max_length=30, unique=True, editable=False)

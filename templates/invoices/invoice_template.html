@@ -108,23 +108,30 @@
 
 <body>
     <div class="invoice-box">
-        <div class="company-name">JAI RATAN ENTERPRISES</div>
+        {% if company %}
+        <div class="company-name">{{ company.company_name }}</div>
         <div class="company-details">
-            Thiru Sri Jayam Plaza(TSJ), Shop No 5, 25 Dr. Radhakrishnan Road, 7th Street <br>
-            Extension, Gandhipuram, Coimbatore-641012. <br>
-            <strong>DL: TN/CBS/20B/2119, TN/CBS/21B/2119, MOB: +91 9444381448</strong>
+            {{ company.address|linebreaksbr }}
         </div>
-
+        <div class="company-details" style="margin-top: 4px;">
+            {% if company.license_number %}<strong>DL: {{ company.license_number }}</strong>{% endif %}
+            {% if company.license_number and company.phone %} &nbsp;|&nbsp; {% endif %}
+            {% if company.phone %}<strong>MOB: {{ company.phone }}</strong>{% endif %}
+        </div>
         <table style="width: 100%; margin-top: 10px;">
             <tr>
-                <td style="width: 70%;"><strong>GST No:</strong> 33AHGPP1008C2Z0</td>
-                <td style="text-align: right;"><strong>Email:</strong> jairatanent@gmail.com</td>
+                {% if company.gst_number %}<td style="width: 70%;"><strong>GST No:</strong> {{ company.gst_number }}</td>{% endif %}
+                <td style="text-align: right;">{% if company.email %}<strong>Email:</strong> {{ company.email }}{% endif %}</td>
             </tr>
         </table>
+        {% else %}
+        <div class="company-name">[Set company details in Admin]</div>
+        <div class="company-details">Configure Company Profile for bills and reports.</div>
+        {% endif %}
 
         <div
             style="text-align: center; font-size: 14px; font-weight: bold; margin: 10px 0; border: 1px solid #000; padding: 4px;">
-            TAX INVOICE</div>
+            TAX INVOICE {% if bill_type == 'dispatch' %}(DISPATCH-WISE){% endif %}</div>
 
         <table class="bill-info">
             <tr>
@@ -163,55 +170,50 @@
                     <th>Batch</th>
                     <th>Exp</th>
                     <th>Qty</th>
-                    <th>Free</th>
                     <th>Rate</th>
                     <th>Gst%</th>
                     <th class="text-right">Total</th>
                 </tr>
             </thead>
             <tbody>
+                {% if dispatched_lines %}
+                {% for line in dispatched_lines %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ line.product_name }}</td>
+                    <td>{{ line.mrp }}</td>
+                    <td>{{ line.batch_number }}</td>
+                    <td>{{ line.expiry_date|date:"m/y" }}</td>
+                    <td>{{ line.quantity }}</td>
+                    <td>{{ line.unit_price }}</td>
+                    <td>{{ line.gst_rate }}%</td>
+                    <td class="text-right">{{ line.total_price }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
                 {% for item in invoice.order.items.all %}
+                {% if not item.is_void %}
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>{{ item.product.name }}</td>
                     <td>{{ item.product.mrp }}</td>
-                    <td>{{ item.product.batch_number }}</td>
-                    <td>{{ item.product.expiry_date|date:"m/y" }}</td>
+                    <td>{% if item.allocations.all %}{{ item.allocations.all.0.stock_batch.batch_number }}{% else %}—{% endif %}</td>
+                    <td>{% if item.allocations.all %}{{ item.allocations.all.0.stock_batch.expiry_date|date:"m/y" }}{% else %}—{% endif %}</td>
                     <td>{{ item.quantity }}</td>
-                    <td>{{ item.free_qty }}</td>
                     <td>{{ item.unit_price }}</td>
                     <td>{{ item.gst_rate }}%</td>
                     <td class="text-right">{{ item.total_price }}</td>
                 </tr>
+                {% endif %}
                 {% endfor %}
-                <!-- Spacer rows to fill space like the original -->
-                {% with ""|center:10 as range %}
-                {% for _ in range %}
+                {% endif %}
+                {% for _ in "1234567890" %}
                 <tr>
-                    <td>&nbsp;</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                 </tr>
                 {% endfor %}
-                {% endwith %}
                 <tr class="last-row">
-                    <td>&nbsp;</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                 </tr>
             </tbody>
         </table>
@@ -227,11 +229,11 @@
                     <table style="width: 100%;">
                         <tr>
                             <td>Gross Amount:</td>
-                            <td class="text-right">₹{{ invoice.order.total_amount }}</td>
+                            <td class="text-right">₹{% if bill_type == 'dispatch' %}{{ dispatch_total }}{% else %}{{ invoice.order.total_amount }}{% endif %}</td>
                         </tr>
                         <tr>
                             <td>GST Total:</td>
-                            <td class="text-right">₹0.00</td>
+                            <td class="text-right">₹{{ gst_total|floatformat:2 }}</td>
                         </tr>
                         <tr>
                             <td>Disc %:</td>
@@ -239,7 +241,7 @@
                         </tr>
                         <tr class="bold" style="font-size: 14px;">
                             <td>NET AMOUNT:</td>
-                            <td class="text-right">₹{{ invoice.order.total_amount }}</td>
+                            <td class="text-right">₹{% if bill_type == 'dispatch' %}{{ dispatch_total }}{% else %}{{ invoice.order.total_amount }}{% endif %}</td>
                         </tr>
                     </table>
                 </td>

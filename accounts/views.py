@@ -1,14 +1,18 @@
 from rest_framework import generics, status, viewsets, permissions as drf_permissions
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import RegisterPharmacySerializer, UserSerializer, UserCreateSerializer, EmailTokenObtainPairSerializer
+from .serializers import (
+    RegisterPharmacySerializer,
+    UserSerializer,
+    UserCreateSerializer,
+    UserProfileUpdateSerializer,
+    ChangePasswordSerializer,
+)
 from .permissions import IsAdminUser
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-class EmailTokenObtainPairView(TokenObtainPairView):
-    serializer_class = EmailTokenObtainPairSerializer
 
 class RegisterPharmacyView(generics.CreateAPIView):
     serializer_class = RegisterPharmacySerializer
@@ -30,6 +34,27 @@ class UserDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class UserProfileUpdateView(generics.UpdateAPIView):
+    serializer_class = UserProfileUpdateSerializer
+    permission_classes = [drf_permissions.IsAuthenticated]
+    http_method_names = ['patch', 'put']
+
+    def get_object(self):
+        return self.request.user
+
+
+class ChangePasswordView(generics.GenericAPIView):
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [drf_permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        request.user.set_password(serializer.validated_data['new_password'])
+        request.user.save()
+        return Response({'message': 'Password updated successfully.'}, status=status.HTTP_200_OK)
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('-id')

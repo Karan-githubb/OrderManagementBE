@@ -6,7 +6,7 @@ from datetime import date, timedelta
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'pharmacy_project.settings')
 django.setup()
 
-from products.models import Product, Category
+from products.models import Product, Category, StockBatch
 from pharmacies.models import Pharmacy
 from django.contrib.auth import get_user_model
 
@@ -58,10 +58,28 @@ products_data = [
     {"name": "Crepe Bandage 10cm", "category_name": "Wound Care", "description": "Stretchable support bandage.", "mrp": 120.00, "selling_price": 85.00, "stock_quantity": 400, "gst_rate": 5.00, "image_url": "https://images.unsplash.com/photo-1603398938378-e54eab446f90?auto=format&fit=crop&q=80&w=400"},
 ]
 
+# Create products with stock_quantity=0 first; stock comes from batches
+today = date.today()
 for p in products_data:
     cat_name = p.pop('category_name')
+    desired_stock = p.pop('stock_quantity', 0)
     p['category'] = category_obj_map[cat_name]
-    Product.objects.update_or_create(name=p['name'], defaults=p)
+    p['stock_quantity'] = 0  # Set from batches below
+    product, _ = Product.objects.update_or_create(name=p['name'], defaults=p)
+
+    # Create batch(es) so product stock is consistent with batch inventory
+    if desired_stock > 0:
+        expiry = today + timedelta(days=365)
+        batch, created = StockBatch.objects.get_or_create(
+            product=product,
+            batch_number='SEED-001',
+            expiry_date=expiry,
+            defaults={'quantity': 0, 'received_date': today}
+        )
+        batch.quantity = desired_stock
+        batch.save()
+        product.stock_quantity = desired_stock
+        product.save(update_fields=['stock_quantity'])
 
 # Create Mock Pharmacies
 pharmacies_data = [
@@ -85,16 +103,16 @@ pharmacies_data = [
     }
 ]
 
-# Helper for users to ensure they exist with correct role/pharmacy
-def ensure_user(email, password, role, pharmacy=None):
-    user = User.objects.filter(email=email).first()
+# Helper for users (username-based login)
+def ensure_user(username, password, role, pharmacy=None, email=''):
+    user = User.objects.filter(username=username).first()
     is_admin = (role == 'admin')
     if not user:
         user = User.objects.create_user(
-            username=email, 
-            email=email, 
-            password=password, 
-            role=role, 
+            username=username,
+            email=email,
+            password=password,
+            role=role,
             pharmacy=pharmacy,
             is_staff=is_admin,
             is_superuser=is_admin
@@ -104,18 +122,26 @@ def ensure_user(email, password, role, pharmacy=None):
         user.pharmacy = pharmacy
         user.is_staff = is_admin
         user.is_superuser = is_admin
+        if email:
+            user.email = email
         user.set_password(password)
         user.save()
     return user
 
+
 for ph_data in pharmacies_data:
     ph, created = Pharmacy.objects.get_or_create(pharmacy_name=ph_data['pharmacy_name'], defaults=ph_data)
-    ensure_user(ph_data['email'], 'pharmacypassword', 'pharmacy', ph)
+    ensure_user(
+        username=ph_data['email'].split('@')[0],  # e.g. citylife, aman
+        password='user123',
+        role='pharmacy',
+        pharmacy=ph,
+        email=ph_data['email']
+    )
 
-# Ensure our specific admin exists
-ensure_user('admin@surgicaldistro.com', 'adminpassword', 'admin')
+# Admin: login with username "admin" and password "admin123"
+ensure_user('admin', 'admin123', 'admin', email='admin@surgicaldistro.com')
 
-# Cleanup old admin if it exists with wrong email/username
-User.objects.filter(username='admin', email='admin@example.com').delete()
-
-print("Seed data updated successfully with correct credentials!")
+print("Seed data loaded successfully.")
+print("  Admin:  username=admin, password=admin123")
+print("  Pharmacy: username=citylife or aman, password=user123")

@@ -7,12 +7,12 @@ class User(AbstractUser):
         ('admin', 'Admin'),
         ('pharmacy', 'Pharmacy'),
     )
-    email = models.EmailField(unique=True)
+    email = models.EmailField(blank=True, default='')
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='pharmacy')
     pharmacy = models.ForeignKey(Pharmacy, on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']
 
     def __str__(self):
-        return f"{self.email} ({self.role})"
+        return f"{self.username} ({self.role})"
